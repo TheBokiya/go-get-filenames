@@ -1,35 +1,48 @@
 package main
 
 import (
+	"fmt"
 	"io/fs"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
 func main() {
-	filenames := readFilenames("pre-wedding")
+	filenames, err := readFilenames("pre-wedding")
+	if err != nil {
+		fmt.Println("Error reading filenames:", err)
+		return
+	}
 
-	saveToFile("selected-photos.txt", toString(filenames))
+	err = saveToFile("selected-photos.txt", toString(filenames))
+	if err != nil {
+		fmt.Println("Error saving to file:", err)
+	}
 }
 
 func toString(filenames []string) string {
-	return strings.Join([]string(filenames), "\n")
+	return strings.Join(filenames, "\n")
 }
 
 func saveToFile(filename string, content string) error {
-	return ioutil.WriteFile(filename, []byte(content), 0666)
+	return os.WriteFile(filename, []byte(content), 0666)
 }
 
-func readFilenames(folderName string) []string {
+func readFilenames(folderName string) ([]string, error) {
 	var filenames []string
 	err := filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
-		filenames = append(filenames, d.Name())
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			filenames = append(filenames, d.Name())
+		}
 		return nil
 	})
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return filenames
+	return filenames, nil
 }
